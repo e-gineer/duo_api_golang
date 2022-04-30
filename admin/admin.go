@@ -135,6 +135,31 @@ type U2FToken struct {
 	User           *User
 }
 
+// Application integrations (not including SSO, which is excluded by the API)
+type Integration struct {
+	AdminApiAdmins             int      `json:"adminapi_admins"`
+	AdminApiInfo               int      `json:"adminapi_info"`
+	AdminApiIntegrations       int      `json:"adminapi_integrations"`
+	AdminApiReadLog            int      `json:"adminapi_read_log"`
+	AdminApiReadResource       int      `json:"adminapi_read_resource"`
+	AdminApiSettings           int      `json:"adminapi_settings"`
+	AdminApiWriteResource      int      `json:"adminapi_write_resource"`
+	FramelessAuthPromptEnabled *int     `json:"frameless_auth_prompt_enabled,omitempty"`
+	Greeting                   string   `json:"greeting"`
+	GroupsAllowed              []string `json:"groups_allowed"`
+	IntegrationKey             string   `json:"integration_key"`
+	Name                       string   `json:"name"`
+	NetworksForApiAccess       *string  `json:"networks_for_api_access,omitempty"`
+	Notes                      string   `json:"notes"`
+	PolicyKey                  string   `json:"policy_key,omitempty"`
+	PromptV4Enabled            string   `json:"prompt_v4_enabled"`
+	SecretKey                  string   `json:"secret_key"`
+	// Note: API says int of 1 or false, not sure how to handle here?
+	SelfServiceAllowed          int    `json:"self_service_allowed"`
+	Type                        string `json:"type"`
+	UsernameNormalizationPolicy string `json:"username_normalization_policy"`
+}
+
 // Common URL options
 
 // Limit sets the optional limit parameter for an API request.
@@ -890,6 +915,81 @@ func (c *Client) GetU2FToken(registrationID string) (*GetU2FTokensResult, error)
 	}
 
 	result := &GetU2FTokensResult{}
+	err = json.Unmarshal(body, result)
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+// Integration methods
+
+// GetIntegrationsResult models responses containing a list of integrations.
+type GetIntegrationsResult struct {
+	duoapi.StatResult
+	ListResult
+	Response []Integration
+}
+
+func (result *GetIntegrationsResult) getResponse() interface{} {
+	return result.Response
+}
+
+func (result *GetIntegrationsResult) appendResponse(integrations interface{}) {
+	asserted_integrations := integrations.([]Integration)
+	result.Response = append(result.Response, asserted_integrations...)
+}
+
+// GetIntegrations calls GET /admin/v1/integrations
+// See https://duo.com/docs/adminapi#retrieve-integrations
+func (c *Client) GetIntegrations(options ...func(*url.Values)) (*GetIntegrationsResult, error) {
+	params := url.Values{}
+	for _, o := range options {
+		o(&params)
+	}
+
+	cb := func(params url.Values) (responsePage, error) {
+		return c.retrieveIntegrations(params)
+	}
+	response, err := c.retrieveItems(params, cb)
+	if err != nil {
+		return nil, err
+	}
+
+	return response.(*GetIntegrationsResult), nil
+}
+
+func (c *Client) retrieveIntegrations(params url.Values) (*GetIntegrationsResult, error) {
+	_, body, err := c.SignedCall(http.MethodGet, "/admin/v1/integrations", params, duoapi.UseTimeout)
+	if err != nil {
+		return nil, err
+	}
+
+	result := &GetIntegrationsResult{}
+	err = json.Unmarshal(body, result)
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+// GetIntegrationResult models responses containing a single integration.
+type GetIntegrationResult struct {
+	duoapi.StatResult
+	Response Integration
+}
+
+// GetIntegration calls GET /admin/v1/integrations/:integration_key
+// See https://duo.com/docs/adminapi#retrieve-integration-by-integration-key
+func (c *Client) GetIntegration(integrationKey string) (*GetIntegrationResult, error) {
+	path := fmt.Sprintf("/admin/v1/integrations/%s", integrationKey)
+
+	_, body, err := c.SignedCall(http.MethodGet, path, nil, duoapi.UseTimeout)
+	if err != nil {
+		return nil, err
+	}
+
+	result := &GetIntegrationResult{}
 	err = json.Unmarshal(body, result)
 	if err != nil {
 		return nil, err
