@@ -1210,3 +1210,58 @@ func (c *Client) GetAccountInfoSummary() (*GetAccountInfoSummaryResult, error) {
 	}
 	return result, nil
 }
+
+// Account Settings methods
+
+type AccountSettings struct {
+	CallerID                   string  `json:"caller_id"`
+	FraudEmail                 string  `json:"fraud_email"`
+	FraudEmailEnabled          bool    `json:"fraud_email_enabled"`
+	HelpdeskBypass             string  `json:"helpdesk_bypass"`
+	HelpdeskBypassExpiration   int     `json:"helpdesk_bypass_expiration"`
+	HelpdeskCanSendEnrollEmail bool    `json:"helpdesk_can_send_enroll_email"`
+	HelpdeskMessage            string  `json:"helpdesk_message"`
+	InactiveUserExpiration     int     `json:"inactive_user_expiration"`
+	KeypressConfirm            string  `json:"keypress_confirm"`
+	KeypressFraud              string  `json:"keypress_fraud"`
+	Language                   string  `json:"language"`
+	LockoutExpireDuration      int     `json:"lockout_expire_duration"`
+	LockoutThreshold           int     `json:"lockout_threshold"`
+	MinimumPasswordLength      int     `json:"minimum_password_length"`
+	Name                       string  `json:"name"`
+	PasswordRequiresLowerAlpha bool    `json:"password_requires_lower_alpha"`
+	PasswordRequiresNumeric    bool    `json:"password_requires_numeric"`
+	PasswordRequiresSpecial    bool    `json:"password_requires_special"`
+	PasswordRequiresUpperAlpha bool    `json:"password_requires_upper_alpha"`
+	SmsBatch                   int     `json:"sms_batch"`
+	SmsExpiration              int     `json:"sms_expiration"`
+	SmsMessage                 string  `json:"sms_message"`
+	SmsRefresh                 int     `json:"sms_refresh"`
+	TelephonyWarningMin        int     `json:"telephony_warning_min"`
+	Timezone                   string  `json:"timezone"`
+	UserTelephonyCostMax       float64 `json:"user_telephony_cost_max"`
+}
+
+// GetAccountInfoSummaryResult model responses for the account info summary.
+type GetAccountSettingsResult struct {
+	duoapi.StatResult
+	Response AccountSettings
+}
+
+// GetAccountInfoSummary calls GET /admin/v1/info/summary
+// See https://duo.com/docs/adminapi#retrieve-summary
+func (c *Client) GetAccountSettings() (*GetAccountSettingsResult, error) {
+	path := fmt.Sprintf("/admin/v1/settings")
+
+	_, body, err := c.SignedCall(http.MethodGet, path, nil, duoapi.UseTimeout)
+	if err != nil {
+		return nil, err
+	}
+
+	result := &GetAccountSettingsResult{}
+	err = json.Unmarshal(body, result)
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
+}
