@@ -155,9 +155,9 @@ type Integration struct {
 	PromptV4Enabled            string   `json:"prompt_v4_enabled"`
 	SecretKey                  string   `json:"secret_key"`
 	// Note: API says int of 1 or false, not sure how to handle here?
-	SelfServiceAllowed          int    `json:"self_service_allowed"`
-	Type                        string `json:"type"`
-	UsernameNormalizationPolicy string `json:"username_normalization_policy"`
+	SelfServiceAllowed          interface{} `json:"self_service_allowed"`
+	Type                        string      `json:"type"`
+	UsernameNormalizationPolicy string      `json:"username_normalization_policy"`
 }
 
 // Administrator models an admin user.
