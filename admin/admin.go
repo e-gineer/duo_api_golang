@@ -179,6 +179,17 @@ type Administrator struct {
 	Status                 string   `json:"status"`
 }
 
+// AdministrativeUnit models an administrative unit.
+type AdministrativeUnit struct {
+	AdminUnitID            string    `json:"admin_unit_id"`
+	Description            string    `json:"description"`
+	Name                   string    `json:"name"`
+	Groups                 *[]string `json:"groups"`
+	Integrations           *[]string `json:"integrations"`
+	RestrictByGroups       bool      `json:"restrict_by_groups"`
+	RestrictByIntegrations bool      `json:"restrict_by_integrations"`
+}
+
 // Common URL options
 
 // Limit sets the optional limit parameter for an API request.
@@ -1084,6 +1095,81 @@ func (c *Client) GetAdministrator(administratorID string) (*GetAdministratorResu
 	}
 
 	result := &GetAdministratorResult{}
+	err = json.Unmarshal(body, result)
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+// AdministrativeUnit methods
+
+// GetAdministrativeUnitsResult models responses containing a list of administrativeUnits.
+type GetAdministrativeUnitsResult struct {
+	duoapi.StatResult
+	ListResult
+	Response []AdministrativeUnit
+}
+
+func (result *GetAdministrativeUnitsResult) getResponse() interface{} {
+	return result.Response
+}
+
+func (result *GetAdministrativeUnitsResult) appendResponse(administrativeUnits interface{}) {
+	asserted_administrative_units := administrativeUnits.([]AdministrativeUnit)
+	result.Response = append(result.Response, asserted_administrative_units...)
+}
+
+// GetAdministrativeUnits calls GET /admin/v1/administrative_units
+// See https://duo.com/docs/adminapi#retrieve-administrative-units
+func (c *Client) GetAdministrativeUnits(options ...func(*url.Values)) (*GetAdministrativeUnitsResult, error) {
+	params := url.Values{}
+	for _, o := range options {
+		o(&params)
+	}
+
+	cb := func(params url.Values) (responsePage, error) {
+		return c.retrieveAdministrativeUnits(params)
+	}
+	response, err := c.retrieveItems(params, cb)
+	if err != nil {
+		return nil, err
+	}
+
+	return response.(*GetAdministrativeUnitsResult), nil
+}
+
+func (c *Client) retrieveAdministrativeUnits(params url.Values) (*GetAdministrativeUnitsResult, error) {
+	_, body, err := c.SignedCall(http.MethodGet, "/admin/v1/administrative_units", params, duoapi.UseTimeout)
+	if err != nil {
+		return nil, err
+	}
+
+	result := &GetAdministrativeUnitsResult{}
+	err = json.Unmarshal(body, result)
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+// GetAdministrativeUnitResult models responses containing a single administrative unit.
+type GetAdministrativeUnitResult struct {
+	duoapi.StatResult
+	Response AdministrativeUnit
+}
+
+// GetAdministrativeUnits calls GET /admin/v1/administrative_units/[admin_unit_id]
+// See https://duo.com/docs/adminapi#retrieve-administrative-unit-details
+func (c *Client) GetAdministrativeUnit(administrativeUnitID string) (*GetAdministrativeUnitResult, error) {
+	path := fmt.Sprintf("/admin/v1/administrative_units/%s", administrativeUnitID)
+
+	_, body, err := c.SignedCall(http.MethodGet, path, nil, duoapi.UseTimeout)
+	if err != nil {
+		return nil, err
+	}
+
+	result := &GetAdministrativeUnitResult{}
 	err = json.Unmarshal(body, result)
 	if err != nil {
 		return nil, err
