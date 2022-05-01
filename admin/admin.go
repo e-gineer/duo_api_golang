@@ -160,6 +160,22 @@ type Integration struct {
 	UsernameNormalizationPolicy string `json:"username_normalization_policy"`
 }
 
+// Administrator models an admin user.
+type Administrator struct {
+	AdminID                string   `json:"admin_id"`
+	AdminUnits             []string `json:"admin_units"`
+	Created                uint64   `json:"created"`
+	Email                  string   `json:"email"`
+	HardToken              *Token   `json:"hardtoken"`
+	LastLogin              uint64   `json:"last_login"`
+	Name                   string   `json:"name"`
+	PasswordChangeRequired bool     `json:"password_change_required"`
+	Phone                  string   `json:"phone"`
+	RestrictedByAdminUnits bool     `json:"restricted_by_admin_units"`
+	Role                   string   `json:"role"`
+	Status                 string   `json:"status"`
+}
+
 // Common URL options
 
 // Limit sets the optional limit parameter for an API request.
@@ -990,6 +1006,81 @@ func (c *Client) GetIntegration(integrationKey string) (*GetIntegrationResult, e
 	}
 
 	result := &GetIntegrationResult{}
+	err = json.Unmarshal(body, result)
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+// Administrator methods
+
+// GetAdministratorsResult models responses containing a list of administrators.
+type GetAdministratorsResult struct {
+	duoapi.StatResult
+	ListResult
+	Response []Administrator
+}
+
+func (result *GetAdministratorsResult) getResponse() interface{} {
+	return result.Response
+}
+
+func (result *GetAdministratorsResult) appendResponse(administrators interface{}) {
+	asserted_administrators := administrators.([]Administrator)
+	result.Response = append(result.Response, asserted_administrators...)
+}
+
+// GetAdministrators calls GET /admin/v1/administrators
+// See https://duo.com/docs/adminapi#retrieve-administrators
+func (c *Client) GetAdministrators(options ...func(*url.Values)) (*GetAdministratorsResult, error) {
+	params := url.Values{}
+	for _, o := range options {
+		o(&params)
+	}
+
+	cb := func(params url.Values) (responsePage, error) {
+		return c.retrieveAdministrators(params)
+	}
+	response, err := c.retrieveItems(params, cb)
+	if err != nil {
+		return nil, err
+	}
+
+	return response.(*GetAdministratorsResult), nil
+}
+
+func (c *Client) retrieveAdministrators(params url.Values) (*GetAdministratorsResult, error) {
+	_, body, err := c.SignedCall(http.MethodGet, "/admin/v1/admins", params, duoapi.UseTimeout)
+	if err != nil {
+		return nil, err
+	}
+
+	result := &GetAdministratorsResult{}
+	err = json.Unmarshal(body, result)
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+// GetAdministratorResult models responses containing a single administrator.
+type GetAdministratorResult struct {
+	duoapi.StatResult
+	Response Administrator
+}
+
+// GetAdministrator calls GET /admin/v1/administrators/:admin_id
+// See https://duo.com/docs/adminapi#retrieve-administrator-by-id
+func (c *Client) GetAdministrator(administratorID string) (*GetAdministratorResult, error) {
+	path := fmt.Sprintf("/admin/v1/admins/%s", administratorID)
+
+	_, body, err := c.SignedCall(http.MethodGet, path, nil, duoapi.UseTimeout)
+	if err != nil {
+		return nil, err
+	}
+
+	result := &GetAdministratorResult{}
 	err = json.Unmarshal(body, result)
 	if err != nil {
 		return nil, err
