@@ -1176,3 +1176,37 @@ func (c *Client) GetAdministrativeUnit(administrativeUnitID string) (*GetAdminis
 	}
 	return result, nil
 }
+
+// Account Info methods
+
+type AccountInfo struct {
+	AdminCount                int `json:"admin_count"`
+	IntegrationCount          int `json:"integration_count"`
+	TelephonyCreditsRemaining int `json:"telephony_credits_remaining"`
+	UserCount                 int `json:"user_count"`
+	UserPendingDeletionCount  int `json:"user_pending_deletion_count"`
+}
+
+// GetAccountInfoSummaryResult model responses for the account info summary.
+type GetAccountInfoSummaryResult struct {
+	duoapi.StatResult
+	Response AccountInfo
+}
+
+// GetAccountInfoSummary calls GET /admin/v1/info/summary
+// See https://duo.com/docs/adminapi#retrieve-summary
+func (c *Client) GetAccountInfoSummary() (*GetAccountInfoSummaryResult, error) {
+	path := fmt.Sprintf("/admin/v1/info/summary")
+
+	_, body, err := c.SignedCall(http.MethodGet, path, nil, duoapi.UseTimeout)
+	if err != nil {
+		return nil, err
+	}
+
+	result := &GetAccountInfoSummaryResult{}
+	err = json.Unmarshal(body, result)
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
+}
